@@ -1,0 +1,33 @@
+/*
+.*
+
+__pycache__
+
+# include back on top level
+# -------------------------
+
+
+# directories
+# -----------
+
+!app
+
+# ===========
+
+
+
+# files
+# ------------
+
+!.gitignore
+!README.md
+
+# project manager
+!pyproject.toml
+!uv.lock
+
+# ============
+
+
+
+# ==========================
