@@ -1,0 +1,17 @@
+{% extends "app/base.html" %}
+
+{% block body %}
+
+<h1>Sign Up</h1>
+
+{% if form.errors %}
+<h2>Some issues were found in the details. Try again.</h2>
+{% endif %}
+
+<form method="post" action="{% url 'app:signup' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="sign up">
+</form>
+
+{% endblock body %}
