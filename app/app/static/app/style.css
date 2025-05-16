@@ -1,0 +1,28 @@
+:root {
+    font-family: sans-serif;
+}
+
+.button,
+input[type="submit"] {
+    background-color: ButtonFace;
+    color: buttontext;
+
+    border: solid;
+    border-color: buttonborder;
+    border-width: thin;
+    border-style: outset;
+    border-radius: 2px;
+
+    text-decoration: none;
+
+    box-sizing: border-box;
+    padding: 1px 6px;
+
+    text-align: center;
+    font-size: 15px;
+}
+
+#menu-bar {
+    padding-top: 10px;
+    padding-bottom: 20px;
+}

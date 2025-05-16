@@ -1,10 +1,11 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.contrib.auth import logout as django_logout
 
 # Create your views here.
 
@@ -36,3 +37,8 @@ def signup(request):
                 return render(request, "app/signup.html", dict(form=form))
             form.save()
             return HttpResponseRedirect(reverse("app:index"))
+
+
+def logout(request):
+    django_logout(request)
+    return redirect(reverse("app:index"))
