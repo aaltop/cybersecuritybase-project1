@@ -1,4 +1,22 @@
 {% extends "app/base.html" %}
 {% block body %}
-Something?
+
+<h1>Notes View</h1>
+
+<h2>Add note</h2>
+<form method="POST" action="{% url 'app:create_note' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input type="submit" value="Add note">
+</form>
+
+<h2>Notes</h2>
+<div class="notes-list">
+    <ul>
+        {% for note in notes %}
+        <li class="notes">{{ note.text }}</li>
+        {% endfor %}
+    </ul>
+</div>
+
 {% endblock body %}
