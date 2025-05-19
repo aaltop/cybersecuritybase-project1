@@ -15,6 +15,10 @@
     <ul>
         {% for note in notes %}
         <li class="notes">{{ note.text }}</li>
+        <form method="POST" action="{% url 'app:delete_note' pk=note.pk %}">
+            {% csrf_token %}
+            <input type="submit" value="Delete">
+        </form>
         {% endfor %}
     </ul>
 </div>
