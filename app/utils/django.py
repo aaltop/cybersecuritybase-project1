@@ -43,7 +43,7 @@ def get_or_handle_exception[dne_T, mor_T](
         obj = model.objects.get(**get_kwargs)
         return obj
     except (model.DoesNotExist, model.MultipleObjectsReturned) as exc:
-        match exc:
+        match type(exc):
             case model.DoesNotExist:
                 return dne_handler(model, get_kwargs)
             case model.MultipleObjectsReturned:

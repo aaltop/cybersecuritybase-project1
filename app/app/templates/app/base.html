@@ -12,6 +12,7 @@
 <body>
     <div id="menu-bar">
         {% if user.is_authenticated %}
+        <div id="menu-bar-username">Logged in as {{ user.username }}</div>
         <a class="button" href="{% url 'app:logout' %}">Log out</a>
         {% else %}
         <a class="button" href="{% url 'app:login' %}">Login</a>

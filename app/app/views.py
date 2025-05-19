@@ -1,9 +1,5 @@
 from django.shortcuts import render, redirect
-from django.http import (
-    HttpResponse,
-    JsonResponse,
-    HttpRequest,
-)
+from django.http import HttpResponse, JsonResponse, HttpRequest, Http404
 from django.urls import reverse
 
 from django.contrib.auth.decorators import login_required
@@ -54,6 +50,61 @@ def create_note(request: HttpRequest):
         case _:
             return _create_invalid_method_response()
 
+# FLAW: BROKEN ACCESS CONTROL
+# ---------------------------
+# Here, the only difference is supplying the logged-in user to the
+# object fetching method. In both cases, a user needs to be logged in,
+# but only in the proper case is the object matched to the logged-in
+# user. As a result, it is possible to delete other user's note by,
+# for example, changing the delete's action to point to some other
+# resource in the browser. See `get_kwargs` in both versions for
+# the difference.
+
+# PROPER VERSION
+# --------------
+
+
+# @login_required
+# def delete_note(request: HttpRequest, pk):
+
+#     # this is for allowing a delete note form to be submitted
+#     # from different locations (for example), and for then allowing
+#     # different redirect locations. Mainly prevents using
+#     # a different port as Django already prevents a number of problems
+#     allowed_redirects = ("/",)
+
+#     match request.method:
+#         case "POST":
+#             # so, this will return 404 if it can't match the pk AND
+#             # user, even though the resource may exist.
+#             # However, using 403 might unnecessarily give away information,
+#             # which this does not: don't let unauthorised users even
+#             # know about the existence of certain resources.
+#             get_kwargs = dict(pk=pk, user=request.user)
+#             possible_model = get_or_handle_exception(models.Note, get_kwargs)
+#             if not isinstance(possible_model, models.Note):
+#                 # seriously, why is it an exception?
+#                 if type(possible_model) is Http404:
+#                     raise possible_model
+#                 return possible_model
+#             else:
+#                 possible_model.delete()
+#                 redirect_to = request.POST.get("next", False)
+#                 if not (redirect_to and redirect_to in allowed_redirects):
+#                     return redirect(reverse("app:index"))
+#                 else:
+#                     return redirect(request.build_absolute_uri(redirect_to))
+#         case _:
+#             return _create_invalid_method_response()
+
+
+# PROPER VERSION
+# ==============
+
+
+# FLAWED VERSION
+# --------------
+
 
 @login_required
 def delete_note(request: HttpRequest, pk):
@@ -66,10 +117,12 @@ def delete_note(request: HttpRequest, pk):
 
     match request.method:
         case "POST":
-            possible_model = get_or_handle_exception(
-                models.Note, dict(pk=pk, user=request.user)
-            )
+            get_kwargs = dict(pk=pk)
+            possible_model = get_or_handle_exception(models.Note, get_kwargs)
             if not isinstance(possible_model, models.Note):
+                # seriously, why is it an exception?
+                if type(possible_model) is Http404:
+                    raise possible_model
                 return possible_model
             else:
                 possible_model.delete()
@@ -81,6 +134,13 @@ def delete_note(request: HttpRequest, pk):
         case _:
             return _create_invalid_method_response()
 
+
+# FLAWED VERSION
+# ==============
+
+
+# FLAW: BROKEN ACCESS CONTROL
+# ===========================
 
 # TODO: see FormView?
 def signup(request):
