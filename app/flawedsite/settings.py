@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import time
+import datetime
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,19 +28,96 @@ SECRET_KEY = 'django-insecure-x%n-%&3hm)t@2+oi+(%!a_9r5h$w)le8b+sa2o_hwygij)ot5^
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# LOGGING SETTINGS
+# --------------------------
+
+
+def create_logger_format(header="", content="{message}"):
+    return "{asctime} {levelname} " + header + "\n\t" + content + "\n"
+
+
+base_fmt = create_logger_format()
+verbose_fmt = create_logger_format(header="{name} {funcname}")
+debug_fmt = create_logger_format(header="path:{pathname}:{lineno} function:{funcname}")
+
+hour_timestamp = time.strftime("%Y%m%d%H", time.gmtime())
+
+root_handlers = ["console", "file"]
+if DEBUG:
+    root_handlers.append("debug")
+
+base_path = BASE_DIR
+logs_path = base_path / "logs"
+logs_path.mkdir(exist_ok=True)
+debug_path = logs_path / "debug"
+debug_path.mkdir(exist_ok=True)
+
+format_defaults = dict(funcname="top level")
+
+
+class GMTFormatter(logging.Formatter):
+    converter = time.gmtime
+
+    def formatTime(self, record, datefmt=None):
+        if datefmt is None:
+            return datetime.datetime.fromtimestamp(
+                record.created, datetime.UTC
+            ).isoformat()
+        else:
+            struct_time = self.converter(record.created)
+            return time.strftime(datefmt, struct_time)
+
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
+    "formatters": {
+        "base": {
+            "()": "flawedsite.settings.GMTFormatter",
+            "format": base_fmt,
+            "style": "{",
+        },
+        "verbose": {
+            "()": "flawedsite.settings.GMTFormatter",
+            "format": verbose_fmt,
+            "style": "{",
+            "defaults": format_defaults,
+        },
+        "debug": {
+            "()": "flawedsite.settings.GMTFormatter",
+            "format": debug_fmt,
+            "style": "{",
+            "defaults": format_defaults,
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "level": "INFO" if DEBUG else "WARNING",
+            "formatter": "base",
+        },
+        "file": {
+            "class": "logging.handlers.TimedRotatingFileHandler",
+            "filename": f"{logs_path.absolute()}/log.log",
+            "when": "H",
+            "encoding": "utf-8",
+            "utc": True,
+            "level": "DEBUG" if DEBUG else "INFO",
+            "formatter": "verbose",
+        },
+        "debug": {
+            "class": "logging.FileHandler",
+            "filename": f"{debug_path}/{hour_timestamp}.log",
+            "encoding": "utf-8",
+            "level": "DEBUG",
+            "formatter": "debug",
         },
     },
-    "root": {
-        "handlers": ["console"],
-        "level": "INFO" if DEBUG else "WARNING",
-    },
+    "root": {"handlers": root_handlers, "level": "DEBUG"},
 }
+
+# LOGGING SETTINGS
+# =========================
 
 ALLOWED_HOSTS = []
 
