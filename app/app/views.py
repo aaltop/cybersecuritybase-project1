@@ -1,5 +1,10 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse, JsonResponse, HttpRequest, Http404
+from django.http import (
+    HttpResponse,
+    JsonResponse,
+    HttpRequest,
+    Http404,
+)
 from django.urls import reverse
 
 from django.contrib.auth.decorators import login_required
@@ -9,7 +14,7 @@ from django.contrib.auth import views as auth_views
 
 import app.models as models
 import app.model_forms as model_forms
-from utils.django import get_or_handle_exception
+from utils.django.models import get_or_handle_exception
 
 import logging
 
@@ -54,7 +59,7 @@ def create_note(request: HttpRequest):
         case _:
             return _create_invalid_method_response()
 
-# FLAW: BROKEN ACCESS CONTROL
+# FLAW: Broken Access Control
 # ---------------------------
 # Here, the only difference is supplying the logged-in user to the
 # object fetching method. In both cases, a user needs to be logged in,
@@ -143,7 +148,7 @@ def delete_note(request: HttpRequest, pk):
 # ==============
 
 
-# FLAW: BROKEN ACCESS CONTROL
+# FLAW: Broken Access Control
 # ===========================
 
 # TODO: see FormView?

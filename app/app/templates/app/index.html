@@ -17,6 +17,7 @@
         <li class="notes">{{ note.text }}</li>
         <form method="POST" action="{% url 'app:delete_note' pk=note.pk %}">
             {% csrf_token %}
+            <input type="hidden" name="next" value="/">
             <input type="submit" value="Delete">
         </form>
         {% endfor %}
