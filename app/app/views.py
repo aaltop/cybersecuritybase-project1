@@ -4,8 +4,8 @@ from django.urls import reverse
 
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth.models import User
 from django.contrib.auth import logout as django_logout
+from django.contrib.auth import views as auth_views
 
 import app.models as models
 import app.model_forms as model_forms
@@ -18,10 +18,14 @@ logger = logging.getLogger(__name__)
 # Create your views here.
 
 
+def _create_json_error_response(reason: str, status):
+    return JsonResponse(data=dict(reason=reason), status=status)
+
+
 def _create_invalid_method_response():
     # could technically be 405, but don't know exactly whether
     # the case will be a recognised method
-    return JsonResponse(data=dict(error="Invalid method"), status=400)
+    return _create_json_error_response("Invalid method", 400)
 
 
 @login_required
@@ -166,6 +170,63 @@ def signup(request):
             return redirect(reverse("app:index"))
         case _:
             return _create_invalid_method_response()
+
+
+# FLAW: Security Logging and Monitoring Failures
+# ----------------------------------------------
+# Difference is whether login attempts, successful or not, are logged.
+# Important for potentially tracing malicious activity, for example.
+
+
+# PROPER VERSION
+# --------------
+
+# def login(request):
+
+#     login_view = auth_views.LoginView.as_view(template_name="app/login.html")
+#     match request.method:
+#         case "GET":
+#             return login_view(request)
+#         case "POST":
+#             username = request.POST.get("username", None)
+#             if username is None:
+#                 return _create_json_error_response("username is required", 400)
+#             logger.info("Login attempt for user %s" % username)
+
+#             # test first, because it returns 200 regardless otherwise
+#             form_params = dict(
+#                 username=username, password=request.POST.get("password", None)
+#             )
+#             auth_form = auth_views.LoginView.form_class(data=form_params)
+#             response = login_view(request)
+#             auth_form.full_clean()
+#             if auth_form.is_valid():
+#                 logger.info("Successful login for user %s" % username)
+#             else:
+#                 logger.warning("Unsuccessful login for user %s" % username)
+
+#             return response
+#         case _:
+#             return _create_invalid_method_response()
+
+# PROPER VERSION
+# ==============
+
+
+# FLAWED VERSION
+# --------------
+
+def login(request):
+
+    login_view = auth_views.LoginView.as_view(template_name="app/login.html")
+    return login_view(request)
+
+# FLAWED VERSION
+# ==============
+
+
+# FLAW: Security Logging and Monitoring Failures
+# ----------------------------------------------
 
 
 def logout(request):

@@ -8,7 +8,7 @@ urlpatterns = [
     path("", views.index, name="index"),
     path(
         "login/",
-        auth_views.LoginView.as_view(template_name="app/login.html"),
+        views.login,
         name="login",
     ),
     path("signup/", views.signup, name="signup"),
