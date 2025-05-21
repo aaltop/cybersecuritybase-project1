@@ -12,6 +12,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth import views as auth_views
 
+from django.core.cache import cache
+
 import app.models as models
 import app.model_forms as model_forms
 from utils.django.models import get_or_handle_exception
@@ -34,7 +36,7 @@ def _create_invalid_method_response():
 
 
 @login_required
-def index(request):
+def index(request: HttpRequest):
     notes = request.user.note_set.all()
 
     context = dict(notes=notes, form=model_forms.NoteForm())
@@ -58,6 +60,7 @@ def create_note(request: HttpRequest):
 
         case _:
             return _create_invalid_method_response()
+
 
 # FLAW: Broken Access Control
 # ---------------------------
@@ -105,7 +108,6 @@ def create_note(request: HttpRequest):
 #                     return redirect(request.build_absolute_uri(redirect_to))
 #         case _:
 #             return _create_invalid_method_response()
-
 
 # PROPER VERSION
 # ==============
@@ -177,42 +179,105 @@ def signup(request):
             return _create_invalid_method_response()
 
 
-# FLAW: Security Logging and Monitoring Failures
-# ----------------------------------------------
+# FLAW: Security Logging and Monitoring Failures AND Identification and Authentication Failures
+# ---------------------------------------------------------------------------------------------
+# Security Logging and Monitoring Failures:
 # Difference is whether login attempts, successful or not, are logged.
 # Important for potentially tracing malicious activity, for example.
+#
+# Identification and Authentication Failures:
+# Difference is the use of brute force prevention. The brute force
+# prevention functionality is facilitated by the BruteForcePrevention
+# class, but the login function gives a good idea of how it works.
+# NOTE: the settings for the BruteForcePrevention class are
+# a little silly, but it's like that for testing purposes. Not very
+# fun to test if it needs ten attempts at first, then requires
+# waiting for ten minutes.
 
 
 # PROPER VERSION
 # --------------
 
-# def login(request):
+
+# class BruteForcePrevention:
+
+#     def __init__(self, request: HttpRequest):
+#         self.ip = request.META["REMOTE_ADDR"]
+#         self.key = f"login_attempts:{self.ip}"
+#         self.timeout = 20
+#         self.attempt_threshold = 1
+
+#     @property
+#     def attempts(self) -> int:
+#         return cache.get(self.key, 0)
+
+#     def increment_attempts(self):
+#         cache.set(self.key, self.attempts + 1, timeout=self.timeout)
+
+#     def is_too_many(self):
+#         """
+#         Whether the number of attempts exceeds the threshold.
+#         """
+#         return self.attempts > self.attempt_threshold
+
+#     def test_and_increment(self):
+#         """
+#         Test whether the number is too many, and if not, increment.
+#         Return the result of the test.
+#         """
+#         is_too_many = self.is_too_many()
+#         if is_too_many:
+#             return is_too_many
+#         else:
+#             self.increment_attempts()
+#             return is_too_many
+
+#     def clear_cache(self):
+#         return cache.delete(self.key)
+
+
+# def login(request: HttpRequest):
 
 #     login_view = auth_views.LoginView.as_view(template_name="app/login.html")
 #     match request.method:
 #         case "GET":
 #             return login_view(request)
 #         case "POST":
+
 #             username = request.POST.get("username", None)
 #             if username is None:
 #                 return _create_json_error_response("username is required", 400)
-#             logger.info("Login attempt for user %s" % username)
 
-#             # test first, because it returns 200 regardless otherwise
+#             # test the form first, because it returns 200 regardless otherwise
 #             form_params = dict(
 #                 username=username, password=request.POST.get("password", None)
 #             )
 #             auth_form = auth_views.LoginView.form_class(data=form_params)
-#             response = login_view(request)
 #             auth_form.full_clean()
+#             ip = request.META["REMOTE_ADDR"]
+#             brute_force_prevention = BruteForcePrevention(request)
 #             if auth_form.is_valid():
-#                 logger.info("Successful login for user %s" % username)
+#                 logger.info("Successful login for user %s from %s", username, ip)
 #             else:
-#                 logger.warning("Unsuccessful login for user %s" % username)
+#                 login_attempts = request.session.get("login_attempts", 0)
+#                 login_attempts += 1
+#                 request.session["login_attempts"] = login_attempts
+#                 logger.warning(
+#                     "Unsuccessful login attempt for user %s from %s, %s attempts",
+#                     username,
+#                     ip,
+#                     login_attempts,
+#                 )
+#                 if brute_force_prevention.test_and_increment():
+#                     logger.warning("Too many login attempts from %s", ip)
+#                     return HttpResponse(
+#                         "Too many login attempts. Try again later.", status=429
+#                     )
 
-#             return response
+#             return login_view(request)
 #         case _:
 #             return _create_invalid_method_response()
+
 
 # PROPER VERSION
 # ==============
@@ -221,17 +286,19 @@ def signup(request):
 # FLAWED VERSION
 # --------------
 
-def login(request):
+
+def login(request: HttpRequest):
 
     login_view = auth_views.LoginView.as_view(template_name="app/login.html")
     return login_view(request)
+
 
 # FLAWED VERSION
 # ==============
 
 
-# FLAW: Security Logging and Monitoring Failures
-# ----------------------------------------------
+# FLAW: Security Logging and Monitoring Failures AND Identification and Authentication Failures
+# =============================================================================================
 
 
 def logout(request):

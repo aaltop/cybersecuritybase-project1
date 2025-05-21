@@ -68,23 +68,25 @@ class GMTFormatter(logging.Formatter):
             return time.strftime(datefmt, struct_time)
 
 
+module_parents = "flawedsite.settings"
+formatter_path = module_parents + "." + GMTFormatter.__qualname__
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
         "base": {
-            "()": "flawedsite.settings.GMTFormatter",
+            "()": formatter_path,
             "format": base_fmt,
             "style": "{",
         },
         "verbose": {
-            "()": "flawedsite.settings.GMTFormatter",
+            "()": formatter_path,
             "format": verbose_fmt,
             "style": "{",
             "defaults": format_defaults,
         },
         "debug": {
-            "()": "flawedsite.settings.GMTFormatter",
+            "()": formatter_path,
             "format": debug_fmt,
             "style": "{",
             "defaults": format_defaults,
@@ -97,17 +99,15 @@ LOGGING = {
             "formatter": "base",
         },
         "file": {
-            "class": "logging.handlers.TimedRotatingFileHandler",
-            "filename": f"{logs_path.absolute()}/log.log",
-            "when": "H",
+            "class": "logging.FileHandler",
+            "filename": f"{logs_path.absolute()}/{hour_timestamp}.log",
             "encoding": "utf-8",
-            "utc": True,
-            "level": "DEBUG" if DEBUG else "INFO",
+            "level": "INFO",
             "formatter": "verbose",
         },
         "debug": {
             "class": "logging.FileHandler",
-            "filename": f"{debug_path}/{hour_timestamp}.log",
+            "filename": f"{debug_path.absolute()}/{hour_timestamp}.log",
             "encoding": "utf-8",
             "level": "DEBUG",
             "formatter": "debug",
@@ -178,40 +178,21 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
-# FLAW: Identification and Authentication Failures
-# ------------------------------------------------
 
-# PROPER VERSION
-# --------------
-
-# AUTH_PASSWORD_VALIDATORS = [
-#     {
-#         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-#     },
-#     {
-#         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-#     },
-#     {
-#         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-#     },
-#     {
-#         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-#     },
-# ]
-
-# PROPER VERSION
-# ==============
-
-
-# FLAWED VERSION
-# --------------
-# just straight up nothing
-
-# FLAWED VERSION
-# ==============
-
-# FLAW: Identification and Authentication Failures
-# ================================================
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
 
 
 # Internationalization
