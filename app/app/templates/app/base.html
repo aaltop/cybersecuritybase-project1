@@ -14,6 +14,9 @@
         {% if user.is_authenticated %}
         <div id="menu-bar-username">Logged in as {{ user.username }}</div>
         <a class="button" href="{% url 'app:logout' %}">Log out</a>
+        <a class="button" href="{% url 'app:index' %}">Home</a>
+        <a class="button" href="{% url 'app:add_friend' %}">Add friend</a>
+        <a class="button" href="{% url 'app:shared' %}">Shared notes</a>
         {% else %}
         <a class="button" href="{% url 'app:login' %}">Login</a>
         <a class="button" href="{% url 'app:signup' %}">Sign Up</a>

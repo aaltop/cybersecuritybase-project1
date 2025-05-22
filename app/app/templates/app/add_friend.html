@@ -1,0 +1,30 @@
+{% extends "app/base.html" %}
+{% block body %}
+
+
+
+<h1>Add friend</h1>
+
+<h2>Friends</h2>
+
+<ul>
+    {% for friend in friends %}
+        <li>{{ friend }}</li>
+    {% endfor %}
+</ul>
+
+<h2>Users</h2>
+    {% if users|length > 0%}
+    <form action="{% url 'app:add_friend' %}" method="post">
+        {% csrf_token %}
+        <select name="username">
+            {% for user in users %}
+            <option value="{{ user.username }}">{{ user.username }}</option>
+            {% endfor %}
+        </select>
+        <input type="submit">
+    </form>
+    {% else %}
+        No users to add.
+    {% endif %}
+{% endblock body %}

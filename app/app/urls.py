@@ -15,4 +15,6 @@ urlpatterns = [
     path("logout/", views.logout, name="logout"),
     path("create_note/", views.create_note, name="create_note"),
     path("delete_note/<int:pk>", views.delete_note, name="delete_note"),
+    path("shared/", views.shared, name="shared"),
+    path("add_friend/", views.add_friend, name="add_friend"),
 ]

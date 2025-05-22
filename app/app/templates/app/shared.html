@@ -1,0 +1,18 @@
+{% extends "app/base.html" %}
+{% block body %}
+
+<h1>Shared Notes</h1>
+
+<h2>Notes</h2>
+{% for username, notes in others_notes %}
+<h3>{{ username }}</h3>
+<div class="notes-list">
+    <ul>
+        {% for note in notes %}
+        <li class="notes">{{ note.text }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endfor %}
+
+{% endblock body %}

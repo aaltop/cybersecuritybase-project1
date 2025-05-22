@@ -11,8 +11,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import logout as django_logout
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.models import User
 
 from django.core.cache import cache
+
+from django.db import transaction
 
 import app.models as models
 import app.model_forms as model_forms
@@ -37,10 +40,14 @@ def _create_invalid_method_response():
 
 @login_required
 def index(request: HttpRequest):
-    notes = request.user.note_set.all()
+    match request.method:
+        case "GET":
+            notes = request.user.note_set.all()
 
-    context = dict(notes=notes, form=model_forms.NoteForm())
-    return render(request, "app/index.html", context)
+            context = dict(notes=notes, form=model_forms.NoteForm())
+            return render(request, "app/index.html", context)
+        case _:
+            return _create_invalid_method_response()
 
 
 @login_required
@@ -53,7 +60,7 @@ def create_note(request: HttpRequest):
             note_form = model_forms.NoteForm(dict(text=text))
             note_form.full_clean()
             if note_form.errors:
-                return render(request, reverse("app:index"), dict(form=note_form))
+                return render(request, "app/index.html", dict(form=note_form))
 
             request.user.note_set.create(text=text)
             return redirect(reverse("app:index"))
@@ -148,6 +155,81 @@ def delete_note(request: HttpRequest, pk):
 
 # FLAWED VERSION
 # ==============
+
+
+def _create_friends(user1, user2):
+
+    to_create = [(user1, user2), (user2, user1)]
+    to_create = [
+        models.UserRelationship(
+            user1=user1,
+            user2=user2,
+            relationship_type=models.UserRelationship.FRIEND,
+        )
+        for user1, user2 in to_create
+    ]
+    with transaction.atomic():
+        models.UserRelationship.objects.bulk_create(to_create)
+
+
+@login_required
+def add_friend(request: HttpRequest):
+    match request.method:
+        case "GET":
+            relationships = request.user.userrelationship_first_user.filter(
+                relationship_type=models.UserRelationship.FRIEND
+            )
+            friends = [relationship.user2.username for relationship in relationships]
+
+            excluded_usernames = friends + [request.user.username]
+            users = User.objects.exclude(username__in=excluded_usernames).only(
+                "username"
+            )
+            return render(
+                request,
+                "app/add_friend.html",
+                context=dict(users=users, friends=friends),
+            )
+        case "POST":
+            username = request.POST.get("username", None)
+            if username is None:
+                return _create_json_error_response(
+                    reason="username is required", status=400
+                )
+            if username == request.user.username:
+                return _create_json_error_response(reason="Cannot add self", status=400)
+
+            other_user = get_or_handle_exception(User, dict(username=username))
+            if not isinstance(other_user, User):
+                if type(other_user) is Http404:
+                    raise other_user
+                return other_user
+
+            _create_friends(request.user, other_user)
+            return redirect(reverse("app:add_friend"))
+
+
+@login_required
+def shared(request: HttpRequest):
+    match request.method:
+        case "GET":
+            friends = request.user.userrelationship_first_user.filter(
+                relationship_type=models.UserRelationship.FRIEND
+            ).only("user2")
+
+            others_notes = [
+                (
+                    friend.user2.username,
+                    friend.user2.note_set.only("text"),
+                )
+                for friend in friends
+            ]
+            logger.debug("others_notes: %s", others_notes)
+            return render(
+                request, "app/shared.html", context=dict(others_notes=others_notes)
+            )
+        case _:
+            return _create_invalid_method_response()
 
 
 # FLAW: Broken Access Control
@@ -259,14 +341,10 @@ def signup(request):
 #             if auth_form.is_valid():
 #                 logger.info("Successful login for user %s from %s", username, ip)
 #             else:
-#                 login_attempts = request.session.get("login_attempts", 0)
-#                 login_attempts += 1
-#                 request.session["login_attempts"] = login_attempts
 #                 logger.warning(
-#                     "Unsuccessful login attempt for user %s from %s, %s attempts",
+#                     "Unsuccessful login attempt for user %s from %s",
 #                     username,
 #                     ip,
-#                     login_attempts,
 #                 )
 #                 if brute_force_prevention.test_and_increment():
 #                     logger.warning("Too many login attempts from %s", ip)
