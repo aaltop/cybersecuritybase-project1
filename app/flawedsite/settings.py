@@ -22,11 +22,51 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
+# FLAW: Security Misconfiguration
+# ---------------------------------
+# Fairly simple, but it's one of the listed flaws. Basically, you shouldn't
+# have DEBUG on in production, especially as Django shows a DEBUG error
+# page which shows quite a lot of detail. Obviously the key shouldn't be here
+# either, it should be in an ENV variable (at least more preferrably).
+
+# "PROPER" VERSION
+# --------------
+# NOTE: this will turn off the css styling due to the way static file
+# serving works with Django (in production, it would be necessary to run
+# a command to server the static files, which seems a little unnecessary
+# for the aim of the project)
+
+# # simulate env, seems a little unnecessary to add .env or anything like that
+# dummy_env = dict(
+#     SECRET_KEY="django-insecure-x%n-%&3hm)t@2+oi+(%!a_9r5h$w)le8b+sa2o_hwygij)ot5^"
+# )
+
+# SECRET_KEY = dummy_env["SECRET_KEY"]
+
+# DEBUG = False
+
+# # probably would have something else here in production, but for
+# # the purposes here, just have this
+# ALLOWED_HOSTS = ["127.0.0.1"]
+
+# "PROPER" VERSION
+# ==============
+
+
+# FLAWED VERSION
+# --------------
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-x%n-%&3hm)t@2+oi+(%!a_9r5h$w)le8b+sa2o_hwygij)ot5^'
+SECRET_KEY = "django-insecure-x%n-%&3hm)t@2+oi+(%!a_9r5h$w)le8b+sa2o_hwygij)ot5^"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+ALLOWED_HOSTS = []
+
+# FLAWED VERSION
+# ==============
+
 
 # LOGGING SETTINGS
 # --------------------------
@@ -118,8 +158,6 @@ LOGGING = {
 
 # LOGGING SETTINGS
 # =========================
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
