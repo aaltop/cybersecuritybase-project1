@@ -14,6 +14,7 @@ from pathlib import Path
 import time
 import datetime
 import logging
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,12 +37,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # a command to server the static files, which seems a little unnecessary
 # for the aim of the project)
 
-# # simulate env, seems a little unnecessary to add .env or anything like that
-# dummy_env = dict(
-#     SECRET_KEY="django-insecure-x%n-%&3hm)t@2+oi+(%!a_9r5h$w)le8b+sa2o_hwygij)ot5^"
+# # simulate a set environment value, seems a little unnecessary to add .env or anything like that
+# os.environ["DJANGO_SECRET_KEY"] = (
+#     "django-insecure-x%n-%&3hm)t@2+oi+(%!a_9r5h$w)le8b+sa2o_hwygij)ot5^"
 # )
 
-# SECRET_KEY = dummy_env["SECRET_KEY"]
+# SECRET_KEY = os.environ["DJANGO_SECRET_KEY"]
 
 # DEBUG = False
 

@@ -70,3 +70,147 @@ flaws. The flaws are as follows:
     an attacker to make a request to any address from inside the server,
     such as potentially the file system of the environment the system
     is running on, allowing access to files on the system.
+
+## Flaws
+
+The following describes the flaws implemented and fixed. Because
+the code is illustrative more than anything,
+there are certainly other flaws in the code, and the code(base) is generally
+not altogether well structured.
+
+See the comments of the flaws in the code for extra information in addition
+to the descriptions below.
+
+### Flaw 1: Injection
+https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L68
+
+[local link](./app/app/views.py#L68)
+
+A naive implementation of "url-ization" is used to find URLs in users'
+text using a Django URL validator, and links (\<a\> tags) are created
+based on the found URLs. In order to show the parts as links, the resultant
+url strings are incorrectly marked as safe. As a result, text like
+https://example.com/\<script\>console.log("xss_attack")\<\\script\>/some-path
+is considered to be a valid URL, and as it is set in an \<a\> tag and marked
+as safe, on rendering the text, the script is executed. In the app,
+a user can create such a text, which can be loaded in another user's
+"shared" view, allowing an XSS attack to take place.
+
+This is fixed by using the Django template filter "urlize" instead, which
+does the job properly. Or, it at least avoids problems like the above;
+it is not entirely clear from documentation whether urlize is completely safe in
+this regard, but based on the documentation and source code, the resultant
+value should be HTML safe. 
+
+
+### Flaw 2: Broken Access Control
+https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L159
+
+[local link](./app/app/views.py#L159)
+
+The ability to delete a note is available. The view requires login,
+but does not ensure that the note being deleted is one made by the
+logged in user. This allows a user who is logged in to delete
+notes that are not theirs by passing a different id in the post
+request.
+
+The fix is simple, as the only change is to require that the note
+that is fetched under the given id is also one that is associated
+with the logged in user. If this is not the case, the view returns
+a 404 instead of 403 to not divulge information about whether
+notes exist with a given id.
+
+
+### Flaw 3: Security Logging and Monitoring Failures
+https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L358
+
+[local link](./app/app/views.py#L358)
+
+The flawed login view does not log login attempts. Logging these
+attempts is useful to be able to potentially track malicious attempts
+to log into someone's account.
+
+In the fixed version, login attempts are logged and include the used username
+and the IP of the request. This could allow tracking brute force cracking attempts
+made from a given IP to a given username.
+
+There may well be other places in the code which could use more logging,
+such as the logout view, but the example here illustrates the idea.
+
+
+### Flaw 4: Identification and Authentication Failures
+https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L358
+
+[local link](./app/app/views.py#L358)
+
+This is in the same part of code as the previous flaw.
+
+Django already uses the PKDF2 algorithm for passwording hashing which
+allows setting a variable computation cost and therefore limit
+the efficacy of brute force attacks by slowing the speed at which
+passwords can be checked. However, there is nothing to limit
+the number of login attempts that can be made, so passwords can
+still be tested constantly. A distributed system could still test
+passwords at a considerable speed, though perhaps not fast enough
+regardless.
+
+As a fix, a simple brute force prevention setup is added to the login
+form. The setup caches failed login attempts from an IP. If too many
+attempts are made, the next attempts return an error for an amount of time,
+with no validation or authentication performed at all. The number of failed attempts
+allowed and the cooldown time are configurable. In the example code, the time
+is very short to allow better testing.
+
+As well as preventing brute forcing
+to an extent, skipping the computationally expensive authentication step
+can help to reduce the effect of a distributed denial of service attack.
+Indeed, a similar setup could be used to limit the number of any type
+of interaction a given IP can make in a given amount of time, with
+potentially more complex rules, like increasing the cooldown time
+with repeated "offenses". However, these considerations are not part of the
+considered flaw.
+
+Of course, in a proper application, There are likely numerous
+other features to reduce the efficacy of online brute forcing (attempting to guess
+the correct password through continous login attempts). Adding logging
+to track login attempts (as is the case in the previous flaw) would allow
+tracking suspicious behaviour, possibly banning IPs that attempt logins too
+many times. Of course, this is effectively what happens in the example
+here already. Further, constant login attempts may cause high usage
+on the authentication server which may be noticed, and ideally would be
+noticed, by the engineers. Though again, good logging would be necessary
+to figure out what's going on. Another feature that can help against
+password cracking in this way is multi-factor authentication, such as
+confirmation through a phone. While
+it doesn't directly disallow the attempts, even if a valid password is
+found, it cannot be used without the secondary authentication. The login
+attempt would be logged and the true user would be likely alerted to
+the hack as a result, allowing the password to be changed. Likewise,
+requiring confirmation through a related email when a new IP/machine tries
+to login can avoid the problem in part.
+
+### Flaw 5: Security Misconfiguration
+https://github.com/aaltop/cybersecuritybase-project1/blob/eacc71ad746573339880f047714c294b4b7532eb/app/flawedsite/settings.py#L25
+
+[local link](./app/flawedsite/settings.py#L25)
+
+The default settings that Django generates include the DEBUG variable
+set to True and the SECRET_KEY existing within the settings directly.
+As mentioned by the settings file itself, the debug should not be used
+in production as the error pages show information about the inner workings
+of the app, which can give important information to hackers to focus
+on certain vulnerabilities they expect to find in a Django application (for
+example). Likewise as mentioned by the settings file, the SECRET_KEY should
+should be kept secret (shockingly). Obviously any other keys, like database
+API keys, should be kept secret too.
+
+The fix is again easy enough: DEBUG is set to False so no informative
+error pages are shown (amongst other effects, of course), and SECRET_KEY
+is read in from an environment variable. The setting of the environment variable is
+simulated here, setting it directly into the environment before fetching
+into the key. The environment variable
+is also namespaced using a "DJANGO_" prefix to prevent clashes.
+
+As an aside, due to the way Django works, the static files will not
+be correctly served while not in debug mode, causing lack of CSS styling,
+but this is besides the point here.
