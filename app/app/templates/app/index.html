@@ -14,7 +14,16 @@
 <div class="notes-list">
     <ul>
         {% for note in notes %}
-        <li class="notes">{{ note.text }}</li>
+        
+        <!-- FLAW: Injection -->
+        <!-- See index in views -->
+
+        <!-- PROPER VERSION -->
+        <!-- <li class="notes">{{ note.text|urlize }}</li> -->
+
+        <!-- FLAWED VERSION -->
+        <li class="notes">{{ note.text|join:" " }}</li>
+
         <form method="POST" action="{% url 'app:delete_note' pk=note.pk %}">
             {% csrf_token %}
             <input type="hidden" name="next" value="/">

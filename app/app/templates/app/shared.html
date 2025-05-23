@@ -9,7 +9,8 @@
 <div class="notes-list">
     <ul>
         {% for note in notes %}
-        <li class="notes">{{ note.text }}</li>
+        <!-- Using the intentionally insecure url-ization result -->
+        <li class="notes">{{ note.text|join:" " }}</li>
         {% endfor %}
     </ul>
 </div>

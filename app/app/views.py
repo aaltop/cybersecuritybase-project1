@@ -14,6 +14,10 @@ from django.contrib.auth import views as auth_views
 from django.contrib.auth.models import User
 
 from django.core.cache import cache
+from django.core.validators import URLValidator
+import django.core.exceptions as django_exceptions
+
+from django.utils.safestring import mark_safe
 
 from django.db import transaction
 
@@ -38,16 +42,99 @@ def _create_invalid_method_response():
     return _create_json_error_response("Invalid method", 400)
 
 
+def _text_urlize_insecure(text: str):
+    """
+    Naive, insecure url-ization.
+    """
+
+    a_template = "<a href='{url}'>{url}</a>"
+    # does just get rid of most whitespace formatting,
+    # which is maybe not ideal, but actually kind of fine.
+    # also, it is supposed to be naive, and it's not a serious application
+    values = text.split()
+    validator = URLValidator(schemes=["http", "https"])
+    formatted_values = []
+    for value in values:
+        try:
+            validator(value)
+            formatted_values.append(mark_safe(a_template.format(url=value)))
+        except django_exceptions.ValidationError:
+            formatted_values.append(value)
+            continue
+
+    return formatted_values
+
+
+# FLAW: Injection
+# ---------------
+# Slightly contrived example. The notes a user creates are processed
+# through an insecure formatter which is meant to create proper links
+# out of sequences that look like urls, see above at _text_urlize_insecure.
+# In order to properly show these as links, they are also marked as safe,
+# falsely so because they're still vulnerable to injection. In reality, there's
+# number of problems that might be possible to work out using proper
+# Django functions here, but it's for illustrating what certainly not to
+# do.
+#
+# In contrast, the proper version simply uses the "urlize" filter
+# directly in the html rather than even doing anything here. This avoids (at least some of)
+# the problems of the more naive approach. It must be noted that I'm not
+# entirely sure about the security efficacy of the urlize filter either:
+# It is said that "[i]f urlize is applied to text that already contains HTML markup,
+# or to email addresses that contain single quotes ('), things won’t work as expected.
+# Apply this filter only to plain text."
+# https://docs.djangoproject.com/en/5.2/ref/templates/builtins/#urlize
+# However, it is unclear what the actual problem here is: the quoted
+# text is simply a "Note" block, rather than a "Warning", for example,
+# and looking at the source code, proper escaping seems to be performed
+# and the resulting text appears to be set as safe (like the mark_safe above,
+# apart from the fact that the above most decidedly is not safe).
+# It may be that using urlize on non-"plain text" simply gives slightly
+# odd results, which certainly is the case, like in the case of an email
+# having a single quote being cut off. Some testing on my part has also not uncovered
+# any (security) problems with the urlize.
+
+# PROPER VERSION (see also index.html)
+# --------------
+
+
+# @login_required
+# def index(request: HttpRequest):
+#     match request.method:
+#         case "GET":
+#             notes = request.user.note_set.only("text", "pk")
+
+#             context = dict(notes=notes, form=model_forms.NoteForm())
+#             return render(request, "app/index.html", context)
+#         case _:
+#             return _create_invalid_method_response()
+
+
+# PROPER VERSION
+# ==============
+
+# FLAWED VERSION
+# --------------
+
 @login_required
 def index(request: HttpRequest):
     match request.method:
         case "GET":
-            notes = request.user.note_set.all()
+            notes = request.user.note_set.only("text", "pk")
+            for note in notes:
+                note.text = _text_urlize_insecure(note.text)
 
             context = dict(notes=notes, form=model_forms.NoteForm())
             return render(request, "app/index.html", context)
         case _:
             return _create_invalid_method_response()
+
+# FLAWED VERSION
+# ==============
+
+
+# FLAW: Injection
+# ===============
 
 
 @login_required
@@ -199,10 +286,17 @@ def add_friend(request: HttpRequest):
             if username == request.user.username:
                 return _create_json_error_response(reason="Cannot add self", status=400)
 
-            other_user = get_or_handle_exception(User, dict(username=username))
+            def dne_handler(*args):
+                return _create_json_error_response("Invalid username", status=400)
+
+            # Would need some checks in practice, but there's no particular
+            # users that shouldn't be added (and it only takes one side
+            # anyway to "make a friend"; it's illustrative software, not
+            # supposed to be usable in practice)
+            other_user = get_or_handle_exception(
+                User, dict(username=username), dne_handler=dne_handler
+            )
             if not isinstance(other_user, User):
-                if type(other_user) is Http404:
-                    raise other_user
                 return other_user
 
             _create_friends(request.user, other_user)
@@ -217,14 +311,14 @@ def shared(request: HttpRequest):
                 relationship_type=models.UserRelationship.FRIEND
             ).only("user2")
 
-            others_notes = [
-                (
-                    friend.user2.username,
-                    friend.user2.note_set.only("text"),
-                )
-                for friend in friends
-            ]
-            logger.debug("others_notes: %s", others_notes)
+            others_notes = []
+            for friend in friends:
+                username = friend.user2.username
+                notes = friend.user2.note_set.only("text")
+                for note in notes:
+                    note.text = _text_urlize_insecure(note.text)
+                others_notes.append((username, notes))
+
             return render(
                 request, "app/shared.html", context=dict(others_notes=others_notes)
             )
