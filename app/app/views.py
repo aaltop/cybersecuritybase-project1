@@ -419,6 +419,13 @@ def signup(request):
 #         case "GET":
 #             return login_view(request)
 #         case "POST":
+#             brute_force_prevention = BruteForcePrevention(request)
+#             ip = request.META["REMOTE_ADDR"]
+#             if brute_force_prevention.test_and_increment():
+#                 logger.warning("Too many login attempts from %s", ip)
+#                 return HttpResponse(
+#                     "Too many login attempts. Try again later.", status=429
+#                 )
 
 #             username = request.POST.get("username", None)
 #             if username is None:
@@ -430,8 +437,6 @@ def signup(request):
 #             )
 #             auth_form = auth_views.LoginView.form_class(data=form_params)
 #             auth_form.full_clean()
-#             ip = request.META["REMOTE_ADDR"]
-#             brute_force_prevention = BruteForcePrevention(request)
 #             if auth_form.is_valid():
 #                 logger.info("Successful login for user %s from %s", username, ip)
 #             else:
@@ -440,11 +445,6 @@ def signup(request):
 #                     username,
 #                     ip,
 #                 )
-#                 if brute_force_prevention.test_and_increment():
-#                     logger.warning("Too many login attempts from %s", ip)
-#                     return HttpResponse(
-#                         "Too many login attempts. Try again later.", status=429
-#                     )
 
 #             return login_view(request)
 #         case _:
