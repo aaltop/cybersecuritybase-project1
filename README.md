@@ -328,5 +328,24 @@ but this is besides the point here.
 
 #### Before fix
 
+In debug mode, the 404 page (for one) shows information that should
+not be revealed to users: users getting all URLs is not good as this
+could allow try different attacks focused on the known URLs, and knowing
+that Django is used on the backend can allow focusing on flaws that
+Django has:
+![A browser view of a 404 page which gives details about Django internals.](./screenshots/flaw-05-before-01.png)
 
 #### After fix
+
+With debug mode off, a basic 404 page is shown that doesn't reveal
+any details about the backend. Note that for this, a custom 404
+page has been implemented too: if this is not done, a knowledgeable
+attacker could tell from the standard Django 404 page that the backend
+uses Django. A custom 500 page is also implemented for the same reason,
+and of course any other pages that Django might provide by default should
+not be used either. Of course, there can be many other signs that Django is used
+as the backend, such as the used default login form. So, whether supplying custom
+implementations is worth the effort is debatable (the fact that Django is used
+on the backend is not necessarily of great use to an attacked anyway), but this
+depends on the the security requirements of the application.
+![A browser view of a 404 page showing a simple "Page not found." message.](./screenshots/flaw-05-after-01.png)
