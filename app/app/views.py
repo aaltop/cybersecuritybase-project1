@@ -203,6 +203,7 @@ def create_note(request: HttpRequest):
 #         case _:
 #             return _create_invalid_method_response()
 
+
 # PROPER VERSION
 # ==============
 
@@ -243,6 +244,9 @@ def delete_note(request: HttpRequest, pk):
 # FLAWED VERSION
 # ==============
 
+# FLAW: Broken Access Control
+# ===========================
+
 
 def _create_friends(user1, user2):
 
@@ -257,7 +261,6 @@ def _create_friends(user1, user2):
     ]
     with transaction.atomic():
         models.UserRelationship.objects.bulk_create(to_create)
-
 
 @login_required
 def add_friend(request: HttpRequest):
@@ -324,10 +327,6 @@ def shared(request: HttpRequest):
             )
         case _:
             return _create_invalid_method_response()
-
-
-# FLAW: Broken Access Control
-# ===========================
 
 # TODO: see FormView?
 def signup(request):

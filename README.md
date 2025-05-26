@@ -158,13 +158,43 @@ notes exist with a given id.
 
 #### Before fix
 
+Alice's note has the ID 59. (On a side note, the template has an issue
+too: part of it is commented out with HTML comment syntax, but Django
+still inputs its data, which is shown to the user. In practice, the Django comment template
+tag should be used.)
+![A notes adding view for the user alice is shown, with a note added that
+reads "This is a note". A view of the associated HTML is also shown,
+with a form that suggests that the note's ID is 59.](./screenshots/flaw-02-before-01.png)
+
+Bob's note has the ID 50.
+![A notes adding view for the user bob is shown, with a note added that
+reads "A bob note.". A view of the associated HTML is also shown,
+with a form that suggests that the note's ID is 50.](./screenshots/flaw-02-before-02.png)
+
+Bob changes the ID in the HTML to 59 (and presses delete on their
+note):
+![Bob changes the ID in the HTML to 59, that of alice's note.](./screenshots/flaw-02-before-03.png)
+
+In alice's view, alice's note has been deleted:
+![Alice's Notes view showing no notes.](./screenshots/flaw-02-before-04.png)
 
 #### After fix
 
+Another alice note has the ID 60:
+![Alice's Notes view showing a note with the ID 60.](./screenshots//flaw-02-after-01.png)
+
+Bob changes the ID in their view to 60 again:
+![Bob's Notes view showing bob has changed the delete ID to 60, alice's note's ID.](./screenshots/flaw-02-after-02.png)
+
+Bob is not successful in deleting alice's note this time. A 404 is returned
+instead of a 403 so that user's cannot test whether a note with a given
+ID exists.
+![A 404 page is shown, suggesting that a POST request to the
+path "delete_note/60" was not successful.](./screenshots/flaw-02-after-03.png)
 
 ### Flaw 3: Security Logging and Monitoring Failures
 
-[local link](./app/app/views.py#L358)
+[local link](./app/app/views.py#L357)
 
 The flawed login view does not log login attempts. Logging these
 attempts is useful to be able to potentially track malicious attempts
@@ -184,7 +214,7 @@ such as the logout view, but the example here illustrates the idea.
 
 ### Flaw 4: Identification and Authentication Failures
 
-[local link](./app/app/views.py#L358)
+[local link](./app/app/views.py#L357)
 
 This is in the same part of code as the previous flaw.
 
@@ -240,7 +270,7 @@ to login can avoid the problem in part.
 
 ### Flaw 5: Security Misconfiguration
 
-[local link](./app/flawedsite/settings.py#L25)
+[local link](./app/flawedsite/settings.py#L26)
 
 The default settings that Django generates include the DEBUG variable
 set to True and the SECRET_KEY existing within the settings directly.
