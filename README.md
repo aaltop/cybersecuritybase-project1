@@ -73,16 +73,19 @@ flaws. The flaws are as follows:
 
 ## Flaws
 
-The following describes the flaws implemented and fixed. Because
-the code is illustrative more than anything,
-there are certainly other flaws in the code, and the code(base) is generally
-not altogether well structured.
-
+The following parts describe the flaws implemented and fixed, including
+images showing the frontend behaviour before and after the fix where possible.
 See the comments of the flaws in the code for extra information in addition
 to the descriptions below.
 
+Because the code is illustrative more than anything,
+there are certainly other flaws in the code, and the code(base) is generally
+not altogether well structured. There is no guarantee that
+all the below flaws are fixed everywhere in the code. In particular,
+the injection flaw described below is not fixed in the shared notes
+view due as described.
+
 ### Flaw 1: Injection
-https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L68
 
 [local link](./app/app/views.py#L68)
 
@@ -100,11 +103,44 @@ This is fixed by using the Django template filter "urlize" instead, which
 does the job properly. Or, it at least avoids problems like the above;
 it is not entirely clear from documentation whether urlize is completely safe in
 this regard, but based on the documentation and source code, the resultant
-value should be HTML safe. 
+value should be HTML safe. Some amount of testing has not revealed an injection
+flaw either.
 
+Note that only the Notes adding view has the fix, while the Shared notes view
+does not. This is for ease of testing, as there are fewer places where
+code needs to be commented in/out, and it's easier to test where the notes
+can actually be added anyway.
+
+#### Before fix
+
+Add a note with a URL that contains a script block:
+![A Notes adding view for the user alice showing a note being added. The note includes a URL
+to the example.com domain, with a path that is an HTML script block.
+The script block contains the command console.log('injection_attack_1').
+A view of the browser console is also shown, but the console has no
+output.](./screenshots/flaw-01-before-01.png)
+
+![The Notes adding view for the user alice showing the note from the previous image having
+been added. The URL of the added note shows up as an oddly formatted link,
+while the browser's console view now shows a logged message "injection_attack_1",
+suggesting that the script block of the note has been executed.](./screenshots/flaw-01-before-02.png)
+
+Look at alice's note in bob's view:
+![A Shared Notes view for the user bob showing the notes that alice has added,
+namely the note containing the URL with a script block. The rendered note
+looks much the same as it did in alice's Notes view, and the same message
+"injection_attack_1" has been logged in the console, showing that cross-site
+scripting is possible.](./screenshots/flaw-01-before-03.png)
+
+#### After fix
+
+![The Notes adding view for the user alice showing the added note and browser
+console again. This time, the injection URL has been properly escaped, with
+only the part before the script block having been urlized; the rest is
+plain text. No message is logged in the console, suggesting that the
+injection has not worked this time.](./screenshots/flaw-01-after-01.png)
 
 ### Flaw 2: Broken Access Control
-https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L159
 
 [local link](./app/app/views.py#L159)
 
@@ -120,9 +156,13 @@ with the logged in user. If this is not the case, the view returns
 a 404 instead of 403 to not divulge information about whether
 notes exist with a given id.
 
+#### Before fix
+
+
+#### After fix
+
 
 ### Flaw 3: Security Logging and Monitoring Failures
-https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L358
 
 [local link](./app/app/views.py#L358)
 
@@ -137,9 +177,12 @@ made from a given IP to a given username.
 There may well be other places in the code which could use more logging,
 such as the logout view, but the example here illustrates the idea.
 
+#### Before fix
+
+
+#### After fix
 
 ### Flaw 4: Identification and Authentication Failures
-https://github.com/aaltop/cybersecuritybase-project1/blob/56aafb0f0fc94a55d5753aad88cacca365eef9e9/app/app/views.py#L358
 
 [local link](./app/app/views.py#L358)
 
@@ -189,8 +232,13 @@ the hack as a result, allowing the password to be changed. Likewise,
 requiring confirmation through a related email when a new IP/machine tries
 to login can avoid the problem in part.
 
+#### Before fix
+
+![A login screen showing an unsuccessful login attempt](./screenshots/flaw-04-before-01.png)
+
+#### After fix
+
 ### Flaw 5: Security Misconfiguration
-https://github.com/aaltop/cybersecuritybase-project1/blob/eacc71ad746573339880f047714c294b4b7532eb/app/flawedsite/settings.py#L25
 
 [local link](./app/flawedsite/settings.py#L25)
 
@@ -214,3 +262,8 @@ is also namespaced using a "DJANGO_" prefix to prevent clashes.
 As an aside, due to the way Django works, the static files will not
 be correctly served while not in debug mode, causing lack of CSS styling,
 but this is besides the point here.
+
+#### Before fix
+
+
+#### After fix
