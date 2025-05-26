@@ -201,16 +201,32 @@ attempts is useful to be able to potentially track malicious attempts
 to log into someone's account.
 
 In the fixed version, login attempts are logged and include the used username
-and the IP of the request. This could allow tracking brute force cracking attempts
-made from a given IP to a given username.
+and the IP of the request. Logs are shown in the console and saved to file.
+This could allow tracking brute force cracking attempts made from a given IP
+to a given username.
 
 There may well be other places in the code which could use more logging,
 such as the logout view, but the example here illustrates the idea.
 
 #### Before fix
 
+User alice makes an unsuccessful attempt to login, but this is is not
+logged on the backend (Django returns a 200 for the login attempt, but
+this suggests that the POST was accepted, not that the login was successful):
+![A console and a login view are shown side-by-side. The login view shows
+user alice having failed a login attempt. The console shows a GET request
+to the login path, and a POST request to the path, but no further logs are present
+detailing the nature of the login attempt.](./screenshots/flaw-03-before-01.png)
 
 #### After fix
+
+This time, the failed login attempt is logged in more detail. The log message
+includes the UTC datetime, a level of WARNING suggesting potentially concerning
+behaviour, the nature of the event (unsuccessful login attempt), the username
+related to the login attempt, and the IP of the login (which is naturally
+the localhost IP):
+![The console now shows a logging message detailing the unsuccessful login
+attempt](./screenshots/flaw-03-after-01.png)
 
 ### Flaw 4: Identification and Authentication Failures
 
@@ -264,7 +280,7 @@ to login can avoid the problem in part.
 
 #### Before fix
 
-![A login screen showing an unsuccessful login attempt](./screenshots/flaw-04-before-01.png)
+![A login screen showing an unsuccessful login attempt for the user alice.](./screenshots/flaw-04-before-01.png)
 
 #### After fix
 
