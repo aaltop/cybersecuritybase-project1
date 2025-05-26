@@ -88,6 +88,7 @@ view due as described.
 ### Flaw 1: Injection
 
 [local link](./app/app/views.py#L68)
+[local link 2](./app/app/templates/app/index.html#L18)
 
 A naive implementation of "url-ization" is used to find URLs in users'
 text using a Django URL validator, and links (\<a\> tags) are created
@@ -241,7 +242,14 @@ passwords can be checked. However, there is nothing to limit
 the number of login attempts that can be made, so passwords can
 still be tested constantly. A distributed system could still test
 passwords at a considerable speed, though perhaps not fast enough
-regardless.
+regardless: for strong enough password requirements and testing any
+random string in the set of valid passwords, it would still take a
+prohibitively long time to find a password. However, if users are able to
+set passwords that are predictable enough, finding the correct one might
+not take that long should a user use a predictable password. It is also
+recommended to not allow passwords that are in any of the "most used
+passwords" list, but the list might only contain a limited number of
+such passwords.
 
 As a fix, a simple brute force prevention setup is added to the login
 form. The setup caches failed login attempts from an IP. If too many
@@ -280,9 +288,18 @@ to login can avoid the problem in part.
 
 #### Before fix
 
+Without the brute force prevention implemented, users can make login
+attempts continually, enabling malicious actors to try and brute force
+a password.
 ![A login screen showing an unsuccessful login attempt for the user alice.](./screenshots/flaw-04-before-01.png)
 
 #### After fix
+
+WIth the brute force prevention implemented, after a few failed attempts (two
+by default for testing purposes) the login does not succeed:
+![A browser view with a text "Too many login attempts. Try again later."
+A view of the browser console is also shown, showing that a POST request
+to the login path returned a status code of 429, Too Many Requests.](./screenshots/flaw-04-after-01.png)
 
 ### Flaw 5: Security Misconfiguration
 
